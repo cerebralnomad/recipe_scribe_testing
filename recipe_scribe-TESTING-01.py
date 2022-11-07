@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 '''
-This is a step forward, but is raising both frames
-on top of each other at launch
+Not working at all
 
 '''
 
@@ -14,7 +13,6 @@ from tkinter import messagebox as msg
 from tkinter import filedialog
 import re
 import configparser
-import glob
 from os import path
 import ToolTip as tt
 from HelpText import help_text
@@ -34,7 +32,7 @@ config.optionxform = str
 
 # Set the variables from the config file if it exists
 # If not create it with the default values
-'''
+
 if path.exists("CONFIG"):
     config.read("CONFIG")
     save_path = config.get('DefaultSavePath', 'save_path')
@@ -95,23 +93,7 @@ else:
     scroll_color = '#bababa'
     scroll_bg = '#cccccc'
     scrollbar_color = '#858585'
-'''
 
-fullscreen = 'True'
-background = '#d4d4d4'
-text_color = 'black'
-entry_bg = '#f2f2f2'
-entry_text = 'black'
-label_bg = '#d4d4d4'
-label_text = 'black'
-scroll_color = '#bababa'
-scroll_bg = '#cccccc'
-scrollbar_color = '#858585'
-save_path = "None"
-use_bp = "True"
-fn_format = "True"
-dark_mode = "False"
-insert_bg = 'black'
 
 root = tk.Tk()
 if fullscreen == 'True' or fullscreen == 'true':
@@ -131,46 +113,26 @@ style = ttk.Style()
 style.configure('TLabelframe', background = background)
 style.configure('TLabelframe.Label', background = background)
 
-class RecipeScribe():
+# search_path = save_path
 
-    def __init__(self, master, *args, **kwargs):
+search_path = '/home/clay/Documents/recipes/**/*'  # Testing Purposes ONLY!!!!
 
-        #tk.Tk.__init__(self, *args, **kwargs)
-        container = tk.Frame(root)
-        container.pack(side='top', fill='both', expand = True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-
-        self.frames = {}
-
-        for F in (MAIN, Search):
-            frame = F(container, self)
-            self.frames[F] = frame
-            frame.grid(row=0, column=0, sticky="nsew")
-
-        self.show_frame(MAIN)
-
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
-
-class MAIN(tk.Frame):
+class MAIN():
     '''
     The main window where the recipe information is entered
     '''
-    def __init__(self, parent, controller):
+    def __init__(self, master):
         '''
         Create the root window, call the methods to create
         key bindings and all the widgets
         '''
-        tk.Frame.__init__(self, parent)
-        self.frame = tk.Frame(self)
+        self.frame = tk.Frame(root)
         self.frame.pack(fill = 'both', expand = True, side = 'top')
         self.frame.configure(background = background)
         self.frame.rowconfigure(1, weight = 1)
         self.frame.columnconfigure(0, weight = 1)
         self.frame.columnconfigure(1, weight = 3)
-        #master.title('Recipe Scribe')
+        master.title('Recipe Scribe')
         self.bind_keys()
         self.create_widgets()
 
@@ -246,7 +208,7 @@ class MAIN(tk.Frame):
                 line = i
                 if re.match('\.', line):
                     newline = re.sub(r'\.', '', line)
-                    file.write(newline + '\n')
+                    file.write(newline + '\n')                  
                 elif not re.match('\w', line): # using re import for regex search to see if line contains letters or numbers
                     file.write(line +'\n')
                 else:
@@ -270,7 +232,7 @@ class MAIN(tk.Frame):
 
         This makes the directions look better without requiring manual indentation
         However, step 10 and beyond will result in one space of indentation too many.
-        Few recipes have more than 9 steps normally.
+        Few recipes have more than 9 steps normally. 
         This issue may be looked at later.
         '''
         for i in directions:
@@ -287,11 +249,15 @@ class MAIN(tk.Frame):
     # See comments for _save for explanation of the event parameter
 
     def _new(self, event='e'):
-
+        
         self.title_entered.delete(0, 'end')
         self.ingredients.delete(1.0, 'end')
         self.directions.delete(1.0, 'end')
         self.title_entered.focus()  # Place cursor back into the title entry box
+
+    def show_frame(self, target):
+        frame = target
+        frame.tkraise()
 
     def create_widgets(self):
         '''
@@ -338,12 +304,14 @@ class MAIN(tk.Frame):
         help_menu.configure(background = background, foreground = text_color)
         menu_bar.add_cascade(label='Help', menu=help_menu)
 
+        menu_bar.add_command(label = 'Search', command=Search())
+        
         '''
         ====================================================================
         Recipe name entry box to be replaced with search term box
         To the right of the box will be two check boxes
         One for Ingredient Search and one for Filename Search
-        Filename will be preselected. Selecting ingredient will
+        Filename will be preselected. Selecting ingredient will 
         deselect filename and vice versa
         Stack the check boxes and place a search button to the right of them
         ====================================================================
@@ -464,7 +432,7 @@ class DefaultPath():
 
 
 class SetBulletPoints():
-
+    
     # Brings up the dialog box to set whether to use bullet points in the ingredient list
 
     choice = 'None'
@@ -516,7 +484,7 @@ class SetBulletPoints():
         if choice == 'yes':
             bp_info = tk.Toplevel(root)
             bp_info.title('Bullet point configuration set')
-            message = ttk.Label(bp_info,
+            message = ttk.Label(bp_info, 
                 text = 'Bullet points will be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
             close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
@@ -525,15 +493,15 @@ class SetBulletPoints():
         else:
             bp_info = tk.Toplevel(root)
             bp_info.title('Bullet point configuration set')
-            message = ttk.Label(bp_info,
+            message = ttk.Label(bp_info, 
                 text = 'Bullet points will not be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
             close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(bp_info)} center')
+            root.eval(f'tk::PlaceWindow {str(bp_info)} center')        
 
 class FilenameFormat():
-
+    
     '''
     Brings up the dialog box to set whether to format the saved filenames
     Formatting will use the recipe title, converting capitals to lowercase
@@ -591,7 +559,7 @@ class FilenameFormat():
         if choice == 'yes':
             fnf_info = tk.Toplevel(root)
             fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
+            message = ttk.Label(fnf_info, 
                 text = 'Filenames will be formatted to lowercase and spaces converted to underscores\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
             close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
@@ -600,7 +568,7 @@ class FilenameFormat():
         else:
             fnf_info = tk.Toplevel(root)
             fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
+            message = ttk.Label(fnf_info, 
                 text = 'Filenames will be the unmodified text of the recipe title\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
             close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
@@ -770,7 +738,7 @@ class HelpWindow():
         vbar troughcolor is gray73, background is gray80
         button background is gray77
         '''
-
+        
         self.help_box = scrolledtext.ScrolledText(self.helpwin,
                                                   wrap=tk.WORD, bd=5, relief=tk.RIDGE)
         self.help_box.configure(background = entry_bg, foreground = text_color)
@@ -813,184 +781,13 @@ class AboutWindow():
         self.about_button.configure(foreground = text_color, background = '#c4c4c4')
         self.about_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='WE')
 
-class Search(tk.Frame):
-
-    '''
-    The main window where the recipe information is entered
-    '''
-    def __init__(self, parent, controller):
-        '''
-        Create the root window, call the methods to create
-        key bindings and all the widgets
-        '''
-        tk.Frame.__init__(self, parent)
-        self.frame = tk.Frame(self)
-        self.frame.pack(fill = 'both', expand = True, side = 'top')
-        self.frame.configure(background = background)
-        self.frame.rowconfigure(1, weight = 1)
-        self.frame.columnconfigure(0, weight = 1)
-        self.frame.columnconfigure(1, weight = 3)
-        #master.title('Recipe Search')
-        self.create_widgets()
 
 
+#=============
+#Start GUI
+#=============
 
-    def ingSearch(self):
-            rec_files = glob.glob(search_path, recursive = True)
-            search_str = self.search_entered.get()
-            self.search_results = {}
-            self.results.delete(0, 'end')
-            self.display.delete(1.0, 'end')
+if __name__ == "__main__":
+    main = MAIN(root)
+    root.mainloop()
 
-            # use try loop to avoid trying to open directories in the file list
-
-            for file in rec_files:
-                try:
-                        with open(file, 'r') as f:
-                                contents = f.read()
-                        # use re.findall to make search case insensitive
-                        if re.findall(search_str, contents, flags=re.IGNORECASE):
-                                self.search_results[file]=path.basename(file)
-                                file.close()
-
-                except:
-                        pass
-            for i in self.search_results.values():
-                    self.results.insert(0, i)
-                    #self.results.insert(n, i)
-
-    # Code to perform a search of the recipe titles
-
-    def titleSearch(self):
-            rec_files = glob.glob(search_path, recursive = True) # gather list to search
-            search_str = self.search_entered.get()  # get the term to be searched for
-            self.search_results = {}
-            self.results.delete(0, 'end') # Clear results box to keep multiple searches from appending
-            self.display.delete(1.0, 'end') # Clear the display box of any previous search results
-            for file in rec_files:
-                    # use re.findall to make search case insensitive
-                    if re.findall(search_str, file, flags=re.IGNORECASE):
-                            self.search_results[file]=path.basename(file) # set key as full path, value as filename
-            for i in self.search_results.values():
-                    self.results.insert(0, i)
-
-    # Code to display the selected recipe in the display box
-
-    def viewRec(self, event):
-            # separate the file names and their full paths into lists
-            key_list = list(self.search_results.keys()) # full paths to files
-            val_list = list(self.search_results.values()) # filenames from search results
-            for i in self.results.curselection():
-                    file = self.results.get(i) # get the currently selected filename
-                    position = val_list.index(file)
-                    self.cur_path = key_list[position] # Save full path of selected recipe
-                    self.display.delete(1.0, 'end') # clear recipe display box
-                    with open(key_list[position], 'r') as f: # Display selected recipe in right hand pane
-                            contents = f.read()
-                            self.display.insert(1.0, contents)
-
-    def saveEdit(self):
-            edited_file = self.display.get(1.0, 'end-1c') # copy contents of recipe display box
-            # Write the edits to the original file
-            with open(self.cur_path, "w") as file:
-                    file.write(edited_file)
-                    file.close()
-            self.savebutton.config(state='disabled') # Disable save button after saving file
-
-    # Function to enable the save button when the mouse is clicked in the recipe display box
-
-    def saveEnable(self, arg):
-            self.savebutton.config(state='normal')
-
-    def create_widgets(self):
-        '''
-        Long method to create all widgets on the root window
-        '''
-
-        # Creating a Menu Bar
-
-        menu_bar = Menu(root)
-        root.config(menu=menu_bar)
-        menu_bar.config(background = background, foreground = text_color)
-        menu_bar.add_command(label='Create New recipe', command=lambda: controller.show_frame(MAIN))
-
-        # Code for the cascading Help menu
-        help_menu = Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label='Program Help  Ctrl+h')
-        help_menu.add_separator()
-        help_menu.add_command(label='About')
-        help_menu.configure(background = background, foreground = text_color)
-        menu_bar.add_cascade(label='Help', menu=help_menu)
-
-        menu_bar.add_command(label='Quit')
-
-        # Top frame for search entry
-        nameLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Enter Search Term')
-        self.search_frame = ttk.LabelFrame(self.frame, labelwidget=nameLabel)
-        self.search_frame.grid(column=0, row=0, columnspan=1, padx=8, pady=4, sticky='W')
-
-        # Frame for the search buttons
-        searchLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Click to Perform Search')
-        self.sbutton_frame = ttk.LabelFrame(self.frame, labelwidget=searchLabel)
-        self.sbutton_frame.grid(column=1, row=0, padx=8, sticky='W')
-        self.sbutton_frame.columnconfigure(0, weight = 1)
-
-        # Frame for the save button
-        saveLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Click to Save Changes')
-        self.svbutton_frame = ttk.LabelFrame(self.frame, labelwidget=saveLabel)
-        self.svbutton_frame.grid(column=2, row=0, padx=8, sticky='W')
-        self.svbutton_frame.columnconfigure(0, weight = 1)
-
-        # Left frame for search results
-        ingLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Search Results')
-        self.result_frame = ttk.LabelFrame(self.frame, labelwidget=ingLabel)
-        self.result_frame.grid(column=0, row=1, padx=8, pady=4, sticky = 'news')
-        self.result_frame.rowconfigure(0, weight = 1)
-        self.result_frame.columnconfigure(0, weight = 1)
-
-        # Right frame for recipe display
-        dirLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Recipe Selected')
-        self.display_frame = ttk.LabelFrame(self.frame, labelwidget=dirLabel)
-        self.display_frame.grid(column=1, row=1, columnspan=2, padx=8, pady=4, sticky='nwes')
-        self.display_frame.rowconfigure(0, weight = 1)
-        self.display_frame.columnconfigure(0, weight = 1)
-
-        # Search box
-        self.search = tk.StringVar()
-        self.search_entered = tk.Entry(self.search_frame, width=30, textvariable=self.search,
-                                      bd=5, relief=tk.RIDGE)
-        self.search_entered.configure(background = entry_bg, foreground = entry_text, insertbackground = insert_bg)
-        self.search_entered.grid(column=0, row=0, padx=8, pady=(3, 8), sticky='W')
-        self.search_entered.focus()
-
-        # Add button for Title search
-        self.tsbutton = tk.Button(self.sbutton_frame, text='Title Search', relief='raised', command = self.titleSearch)
-        self.tsbutton.grid(column=0, row=1, padx=8, pady=(3, 8), sticky='W')
-
-        # Add button for Ingredient search
-        self.ingbutton = tk.Button(self.sbutton_frame, text='Ingredient Search', relief='raised', command = self.ingSearch)
-        self.ingbutton.grid(column=1, row=1, padx=8, pady=(3, 8))
-
-        # Add button to save edits
-        self.savebutton = tk.Button(self.svbutton_frame, text='Save Edits', relief='raised', command = self.saveEdit)
-        self.savebutton.grid(column=0, row=1, padx=8, pady=(3, 8))
-        self.savebutton.config(state='disabled')
-
-        # Search results box
-        self.results = tk.Listbox(self.result_frame, width = 30, bd=5, selectmode=tk.SINGLE,\
-                 relief=tk.RIDGE)
-        self.results.configure(background = entry_bg, foreground = entry_text)
-        self.results.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
-        self.results.bind('<<ListboxSelect>>', self.viewRec)
-
-        # recipe display box
-        self.display = scrolledtext.ScrolledText(self.display_frame, bd=5,\
-                wrap=tk.WORD, relief=tk.RIDGE)
-        self.display.configure(background = entry_bg, foreground = entry_text, insertbackground = insert_bg)
-        self.display.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
-        self.display.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
-        self.display.bind("<Button-1>", self.saveEnable) # left click enables save button
-        self.display.bind("<Button-3>", self.saveEnable) # right click enables save button
-
-app = RecipeScribe(root)
-root.mainloop()
