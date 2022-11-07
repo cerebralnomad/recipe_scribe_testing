@@ -6,9 +6,7 @@
 # This is sandbox code for eventual inclusion 
 # into the GUI recipe creator program Recipe Scribe
 #
-# This code is currently being developed to send 
-# the search results to the left pane of the 
-# main window
+# This code is currently working as a stand alone module
 
 import tkinter as tk
 from tkinter import ttk
