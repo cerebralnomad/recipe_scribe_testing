@@ -1,7 +1,7 @@
 # Recipe Scribe 2.0 TESTING
 
-This repo is the sandbox for testing of Recipe Scribe 2.0
-Files here are normally unstable, and contain broken or partially working features.
+This repo is the sandbox for testing of Recipe Scribe 2.0  
+Files here are normally unstable, and contain broken or partially working features.  
 The stable 1.0 version can be found at [https://github.com/cerebralnomad/Recipe-Scribe](https://github.com/cerebralnomad/Recipe-Scribe)
 
 ## Main Feature Addition
