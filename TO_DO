@@ -2,17 +2,18 @@ DONE - integrate save edits button on search page
 
 DONE - add config option to start program fullscreen
 
-integrate search page into main program
+DONE - integrate search page into main program
 
-remember to integrate option to unindent lines starting with a period in directions.
-it's in the new version, but not the sandbox version.
+DONE - remember to integrate option to unindent lines starting with a period in
+        directions.
+        it's in the new version, but not the sandbox version.
 
 integrate the config changes into the new version (python3.10 dependant)
 
 search_path is still hard coded. Make it pull from the config and add **/* for globbing
 
-add insert_bg variables for light and dark modes:
-    insert_bg = 'black'  for light mode
-    insert_bg = 'white'  for dark mode
-then change the insertbackground parameters for all three boxes to teh variable.
-currently the cursor is invisible in light mode.
+DONE - add insert_bg variables for light and dark modes:
+        insert_bg = 'black'  for light mode
+        insert_bg = 'white'  for dark mode
+        then change the insertbackground parameters for all three boxes to teh variable.
+        currently the cursor is invisible in light mode.

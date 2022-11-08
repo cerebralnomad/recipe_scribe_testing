@@ -3,8 +3,9 @@
 Switching frames now works in full screen without the loss
 of the menu bar.
 Archiving at this point to preserve progress.
-Config parser still commented out and many development related
-comments need to be removed.
+Config parser still commented out
+
+Added the check for leading . in directions to escape indent
 
 '''
 
@@ -22,13 +23,14 @@ from os import path
 import ToolTip as tt
 from HelpText import help_text
 from AboutText import about_text
+import time
 
 
 
 '''
 ConfigParser options comment prefixes and allow no value
 let's me include comments in the config file that will not
-be stripped on a write to the file initiated by the GUI
+be stripped on a write to the file initiated from the GUI
 
 The optionxform setting preserves capitialization in those comments
 '''
@@ -101,6 +103,9 @@ else:
     scrollbar_color = '#858585'
     insert_bg = 'black'
 '''
+# =================================================
+# Remove these variables after enabling the parser
+# Their values will be pulled from the CONFIG file
 
 fullscreen = 'False'
 background = '#d4d4d4'
@@ -117,6 +122,7 @@ use_bp = "True"
 fn_format = "True"
 dark_mode = "False"
 insert_bg = 'black'
+# ===================================================
 
 root = tk.Tk()
 if fullscreen == 'True' or fullscreen == 'true':
@@ -133,11 +139,18 @@ root.rowconfigure(1, weight = 1)
 root.columnconfigure(0, weight = 1)
 root.columnconfigure(1, weight = 3)
 style = ttk.Style()
+root.update_idletasks()
 
 style.configure('TLabelframe', background = background)
 style.configure('TLabelframe.Label', background = background)
 
+# Uncomment search_path and remove hard code path after
+# Parser is enabled
+
+# search_path = save_path
 search_path = '/home/clay/Documents/recipes/**/*'
+
+fs = ''
 
 class MAIN():
     '''
@@ -148,13 +161,21 @@ class MAIN():
         Hack to prevent the loss of the menu bar when switching
         frames in full screen.
         Instantly resizing the window size down and back to
-        full brings the menu back.
+        full brings the menu back seamlessly.
+
+        The elif is in case launch was not in fullscreen, but the window
+        was maximized after switching to the search page.
         '''
         if fullscreen == 'True' or fullscreen == 'true':
             width = int(root.winfo_screenwidth() / 1.9)
             height = int(root.winfo_screenheight() / 1.2)
             root.geometry('%sx%s' % (width, height))
             root.attributes('-zoomed', True)
+
+        elif fs == "F":
+            w = (root.winfo_width())
+            h = (root.winfo_height())
+            root.geometry('%sx%s' % (w-1, h-1))
 
         '''
         Create the root window, call the methods to create
@@ -179,7 +200,7 @@ class MAIN():
         root.bind('<Control-n>', self._new)
         root.bind('<Control-q>', self._quit)
         root.bind('<Control-h>', HelpWindow)
-        root.bind('<Control-c>', DefaultPath)
+        #root.bind('<Control-c>', DefaultPath)
 
     def _quit(self, event='q'):
         '''
@@ -265,17 +286,26 @@ class MAIN():
         	1. First do this thing.
         	   Then do this further thing
 
-        This makes the directions look better without requiring manual indentation
-        However, step 10 and beyond will result in one space of indentation too many.
+        This makes the directions look better without requiring manual
+        indentation
+        However, step 10 and beyond will result in one space of indentation
+        too many.
         Few recipes have more than 9 steps normally.
         This issue may be looked at later.
+
+        Lines in Directions beginning with a period will not be indented.
+        This will allow for the inclusion of notes or links without having them
+        indented in the saved file.
         '''
         for i in directions:
-        	line = i
-        	if re.match('[1-9]', line):
-        		file.write(line + '\n')
-        	else:
-        		file.write('   ' + line + '\n')
+            line = i
+            if re.match('[1-9]', line):
+                file.write(line + '\n')
+            elif re.match('\.', line): # Do not indent lines beginning with a period
+                newline = re.sub(r'\.', '', line) # Remove the . before writing
+                file.write(newline + '\n')
+            else:
+                file.write('   ' + line + '\n')
 
         file.write("\n\n\n")
         file.close()
@@ -293,7 +323,7 @@ class MAIN():
     def search(self):
         Search(root)
         self.frame.pack_forget()
-        #self.frame.destroy()
+
 
     def create_widgets(self):
         '''
@@ -339,30 +369,15 @@ class MAIN():
         help_menu.add_command(label='About', command=AboutWindow)
         help_menu.configure(background = background, foreground = text_color)
         menu_bar.add_cascade(label='Help', menu=help_menu)
-
-        menu_bar.add_command(label = 'Search', command=self.search)
-
-        '''
-        ====================================================================
-        Recipe name entry box to be replaced with search term box
-        To the right of the box will be two check boxes
-        One for Ingredient Search and one for Filename Search
-        Filename will be preselected. Selecting ingredient will
-        deselect filename and vice versa
-        Stack the check boxes and place a search button to the right of them
-        ====================================================================
-        '''
+        # Spacer to set the Search command apart from the rest of the manu
+        menu_bar.add_command(label='         ', command=None, state='disabled')
+        # Command to switch to the Search window
+        menu_bar.add_command(label = 'Search Recipes', command=self.search)
 
         # Top frame for the recipe name entry
         nameLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Enter Recipe Title')
         self.title_frame = ttk.LabelFrame(self.frame, labelwidget=nameLabel)
         self.title_frame.grid(column=0, row=0, columnspan=2, padx=8, pady=4, sticky='W')
-
-        '''
-        ===================================================================
-        Ingredients box will be used to display the returned search results
-        ===================================================================
-        '''
 
         # Left frame for the ingredients list
         ingLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Ingreidents')
@@ -371,25 +386,12 @@ class MAIN():
         self.ing_frame.rowconfigure(0, weight = 1)
         self.ing_frame.columnconfigure(0, weight = 1)
 
-        '''
-        ====================================================================
-        Directions box will be used to display a recipe when clicked on in
-        the search results box (hopefully)
-        ====================================================================
-        '''
-
         # Right frame for the directions
         dirLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Directions')
         self.dir_frame = ttk.LabelFrame(self.frame, labelwidget=dirLabel)
         self.dir_frame.grid(column=1, row=1, padx=8, pady=4, sticky='nwes')
         self.dir_frame.rowconfigure(0, weight = 1)
         self.dir_frame.columnconfigure(0, weight = 1)
-
-        '''
-        =====================================================================
-        Change this to say "Enter search term here"
-        =====================================================================
-        '''
 
         # Adding a text box entry widget for the recipe title
         self.title = tk.StringVar()
@@ -419,6 +421,7 @@ class MAIN():
         tt.create_ToolTip(self.directions, 'Enter the recipe instructions here')
 
         self.title_entered.focus()  # Place cursor into the title entry box
+
 
 class DefaultPath():
     '''
@@ -551,7 +554,6 @@ class FilenameFormat():
 
         # Create the popup to select the configuration setting
 
-        #self.fnfwin = tk.Tk()
         self.fnfwin = tk.Toplevel(root)
         self.fnfwin.title('Filename formatting configuration')
         if fn_format == 'True':
@@ -570,7 +572,7 @@ class FilenameFormat():
 
     def fnf_true(self):
 
-        # Set the use_bp setting in the CONFIG file to True
+        # Set the fn_format setting in the CONFIG file to True
 
         config.set("FormatFileName", "fn_format", "True")
         with open('CONFIG', 'w+') as configfile:
@@ -580,7 +582,7 @@ class FilenameFormat():
 
     def fnf_false(self):
 
-        # Set the use_bp setting in the CONFIG file to False
+        # Set the fn_format setting in the CONFIG file to False
 
         config.set("FormatFileName", "fn_format", "False")
         with open('CONFIG', 'w+') as configfile:
@@ -820,20 +822,35 @@ class AboutWindow():
 class Search():
 
     '''
-    The main window where the recipe information is entered
+    The main window where the search is performed
     '''
     def __init__(self, master):
         '''
         Hack to prevent the loss of the menu bar when switching
         frames in full screen.
-        Instantly resizing the window size down and back to
-        full brings the menu back.
+        If the program was launched in fullscreen, instantly resizing
+        the window size down and back to full brings the menu back seamlessly.
+
+        The else statement is for when the program was maximized after launch.
+        The global fs variable is for when the screen was maximized only after
+        switching to the search window.
+        I know, I know...
         '''
+
         if fullscreen == 'True' or fullscreen == 'true':
             width = int(root.winfo_screenwidth() / 1.9)
             height = int(root.winfo_screenheight() / 1.2)
             root.geometry('%sx%s' % (width, height))
             root.attributes('-zoomed', True)
+
+        else:
+            global fs
+            fs = 'F'
+            w = (root.winfo_width())
+            h = (root.winfo_height())
+            root.geometry('%sx%s' % (w-1, h-1))
+
+
 
         '''
         Create the root window, call the methods to create
@@ -849,12 +866,13 @@ class Search():
         master.title('Recipe Search')
         self.create_widgets()
 
-
+    # Function to perform a search of the ingredients in all recipes
 
     def ingSearch(self):
             rec_files = glob.glob(search_path, recursive = True)
             search_str = self.search_entered.get()
             self.search_results = {}
+            # Clear the results and display boxes of previous search, if any
             self.results.delete(0, 'end')
             self.display.delete(1.0, 'end')
 
@@ -873,9 +891,9 @@ class Search():
                         pass
             for i in self.search_results.values():
                     self.results.insert(0, i)
-                    #self.results.insert(n, i)
 
-    # Code to perform a search of the recipe titles
+
+    # Function to perform a search of the recipe titles
 
     def titleSearch(self):
             rec_files = glob.glob(search_path, recursive = True) # gather list to search
@@ -890,7 +908,7 @@ class Search():
             for i in self.search_results.values():
                     self.results.insert(0, i)
 
-    # Code to display the selected recipe in the display box
+    # Function to display the selected recipe in the display box
 
     def viewRec(self, event):
             # separate the file names and their full paths into lists
@@ -898,10 +916,13 @@ class Search():
             val_list = list(self.search_results.values()) # filenames from search results
             for i in self.results.curselection():
                     file = self.results.get(i) # get the currently selected filename
+                    # Get the position of the filename in the list
                     position = val_list.index(file)
-                    self.cur_path = key_list[position] # Save full path of selected recipe
+                    # Get and save the full path from the same position in the key list
+                    self.cur_path = key_list[position]
                     self.display.delete(1.0, 'end') # clear recipe display box
-                    with open(key_list[position], 'r') as f: # Display selected recipe in right hand pane
+                    # Open selected recipe using the full path
+                    with open(key_list[position], 'r') as f:
                             contents = f.read()
                             self.display.insert(1.0, contents)
 
@@ -913,7 +934,10 @@ class Search():
                     file.close()
             self.savebutton.config(state='disabled') # Disable save button after saving file
 
-    # Function to enable the save button when the mouse is clicked in the recipe display box
+    # Function to enable the save button when the mouse is clicked in the
+    # recipe display box
+    # Clicking the save button with the box empty resulted in silent errors
+    # that show up when running from CLI
 
     def saveEnable(self, arg):
             self.savebutton.config(state='normal')
@@ -926,9 +950,10 @@ class Search():
         root.quit()
         root.destroy()
 
+    # Function to switch to the main window
+
     def create(self):
         MAIN(root)
-        #self.frame.destroy()
         self.frame.pack_forget()
 
     def create_widgets(self):
@@ -937,6 +962,9 @@ class Search():
         '''
 
         # Creating a Menu Bar
+        # Menu is a smaller version than on the main window since the
+        # file menu had no purpose here and the config menu was
+        # unnecessary on both pages
 
         menu_bar = Menu(root)
         root.config(menu=menu_bar)
@@ -1003,6 +1031,8 @@ class Search():
         # Add button to save edits
         self.savebutton = tk.Button(self.svbutton_frame, text='Save Edits', relief='raised', command = self.saveEdit)
         self.savebutton.grid(column=0, row=1, padx=8, pady=(3, 8))
+        # Save button disabled initially. It becomes enabled when the mouse
+        # is clicked in the display pane to make any edits.
         self.savebutton.config(state='disabled')
 
         # Search results box
