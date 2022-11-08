@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 '''
-Almost Working.
-Switching between panes works fine, but when
-maximized, the menu bar isn't shown after switching.
+Switching frames now works in full screen without the loss
+of the menu bar.
+Archiving at this point to preserve progress.
+Config parser still commented out and many development related
+comments need to be removed.
 
 '''
 
@@ -86,6 +88,7 @@ if dark_mode == 'True' or dark_mode == 'true':
     scroll_color = '#5d5c5c'
     scroll_bg = '#464444'
     scrollbar_color = '#858585'
+    insert_bg = 'white'
 else:
     background = '#d4d4d4'
     text_color = 'black'
@@ -96,9 +99,10 @@ else:
     scroll_color = '#bababa'
     scroll_bg = '#cccccc'
     scrollbar_color = '#858585'
+    insert_bg = 'black'
 '''
 
-fullscreen = 'True'
+fullscreen = 'False'
 background = '#d4d4d4'
 text_color = 'black'
 entry_bg = '#f2f2f2'
@@ -141,9 +145,22 @@ class MAIN():
     '''
     def __init__(self, master):
         '''
+        Hack to prevent the loss of the menu bar when switching
+        frames in full screen.
+        Instantly resizing the window size down and back to
+        full brings the menu back.
+        '''
+        if fullscreen == 'True' or fullscreen == 'true':
+            width = int(root.winfo_screenwidth() / 1.9)
+            height = int(root.winfo_screenheight() / 1.2)
+            root.geometry('%sx%s' % (width, height))
+            root.attributes('-zoomed', True)
+
+        '''
         Create the root window, call the methods to create
         key bindings and all the widgets
         '''
+
         self.frame = tk.Frame(root)
         self.frame.pack(fill = 'both', expand = True, side = 'top')
         self.frame.configure(background = background)
@@ -378,7 +395,7 @@ class MAIN():
         self.title = tk.StringVar()
         self.title_entered = tk.Entry(self.title_frame, width=75, textvariable=self.title,
                                       bd=5, relief=tk.RIDGE)
-        self.title_entered.configure(background = entry_bg, foreground = entry_text, insertbackground='white')
+        self.title_entered.configure(background = entry_bg, foreground = entry_text, insertbackground=insert_bg)
         self.title_entered.grid(column=0, row=2, padx=8, pady=(3, 8), sticky='W')
         self.title_entered.bind("<Tab>", self.focus_next_widget)
         tt.create_ToolTip(self.title_entered, 'Enter the title of the recipe here')
@@ -386,7 +403,7 @@ class MAIN():
         # Add a scroll box for ingredients
         self.ingredients = scrolledtext.ScrolledText(self.ing_frame, width = 30, bd=5,\
                 wrap=tk.WORD, relief=tk.RIDGE)
-        self.ingredients.configure(background = entry_bg, foreground = entry_text, insertbackground='white')
+        self.ingredients.configure(background = entry_bg, foreground = entry_text, insertbackground=insert_bg)
         self.ingredients.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
         self.ingredients.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.ingredients.bind("<Tab>", self.focus_next_widget)
@@ -395,7 +412,7 @@ class MAIN():
         # Add a scroll text box for directions
         self.directions = scrolledtext.ScrolledText(self.dir_frame, bd=5,\
                 wrap=tk.WORD, relief=tk.RIDGE)
-        self.directions.configure(background = entry_bg, foreground = entry_text, insertbackground='white')
+        self.directions.configure(background = entry_bg, foreground = entry_text, insertbackground=insert_bg)
         self.directions.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
         self.directions.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.directions.bind("<Tab>", self.focus_next_widget)
@@ -807,9 +824,22 @@ class Search():
     '''
     def __init__(self, master):
         '''
+        Hack to prevent the loss of the menu bar when switching
+        frames in full screen.
+        Instantly resizing the window size down and back to
+        full brings the menu back.
+        '''
+        if fullscreen == 'True' or fullscreen == 'true':
+            width = int(root.winfo_screenwidth() / 1.9)
+            height = int(root.winfo_screenheight() / 1.2)
+            root.geometry('%sx%s' % (width, height))
+            root.attributes('-zoomed', True)
+
+        '''
         Create the root window, call the methods to create
         key bindings and all the widgets
         '''
+
         self.frame = tk.Frame(root)
         self.frame.pack(fill = 'both', expand = True, side = 'top')
         self.frame.configure(background = background)
