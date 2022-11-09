@@ -3,7 +3,8 @@
 Switching frames now works in full screen without the loss
 of the menu bar.
 Archiving at this point to preserve progress.
-Config parser still commented out
+
+Config parser has been restored.
 
 Added the check for leading . in directions to escape indent
 
@@ -17,6 +18,8 @@ from tkinter import Menu
 from tkinter import messagebox as msg
 from tkinter import filedialog
 import re
+import os
+import sys
 import configparser
 import glob
 from os import path
@@ -39,7 +42,7 @@ config.optionxform = str
 
 # Set the variables from the config file if it exists
 # If not create it with the default values
-'''
+
 if path.exists("CONFIG"):
     config.read("CONFIG")
     save_path = config.get('DefaultSavePath', 'save_path')
@@ -102,26 +105,26 @@ else:
     scroll_bg = '#cccccc'
     scrollbar_color = '#858585'
     insert_bg = 'black'
-'''
+
 # =================================================
 # Remove these variables after enabling the parser
 # Their values will be pulled from the CONFIG file
 
-fullscreen = 'False'
-background = '#d4d4d4'
-text_color = 'black'
-entry_bg = '#f2f2f2'
-entry_text = 'black'
-label_bg = '#d4d4d4'
-label_text = 'black'
-scroll_color = '#bababa'
-scroll_bg = '#cccccc'
-scrollbar_color = '#858585'
-save_path = "None"
-use_bp = "True"
-fn_format = "True"
-dark_mode = "False"
-insert_bg = 'black'
+#fullscreen = 'False'
+#background = '#d4d4d4'
+#text_color = 'black'
+#entry_bg = '#f2f2f2'
+#entry_text = 'black'
+#label_bg = '#d4d4d4'
+#label_text = 'black'
+#scroll_color = '#bababa'
+#scroll_bg = '#cccccc'
+#scrollbar_color = '#858585'
+#save_path = "None"
+#use_bp = "True"
+#fn_format = "True"
+#dark_mode = "False"
+#insert_bg = 'black'
 # ===================================================
 
 root = tk.Tk()
@@ -147,8 +150,8 @@ style.configure('TLabelframe.Label', background = background)
 # Uncomment search_path and remove hard code path after
 # Parser is enabled
 
-# search_path = save_path
-search_path = '/home/clay/Documents/recipes/**/*'
+search_path = save_path
+#search_path = '/home/clay/Documents/recipes/**/*'
 
 fs = ''
 
@@ -445,9 +448,9 @@ class DefaultPath():
             self.current_loc.grid(column=1, row=1, columnspan=2, padx=(10), pady=(15, 0), sticky='WE')
         self.msg = ttk.Label(self.pathwin, text='Click Browse to select your default save location')
         self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
-        self.button = ttk.Button(self.pathwin, text=' Browse ', command=self.set_path)
+        self.button = ttk.Button(self.pathwin, text=' Browse ', command=lambda: [self.pathwin.destroy(), self.set_path()])
         self.button.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
-        self.cancel = ttk.Button(self.pathwin, text=' Cancel ', command=self.pathwin.destroy)
+        self.cancel = ttk.Button(self.pathwin, text=' Cancel ', command=lambda: self.pathwin.destroy())
         self.cancel.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
 
     def set_path(self):
@@ -466,7 +469,7 @@ class DefaultPath():
         Confirmation popup that the default path was saved
         '''
         msg.showinfo(
-            'Default Save Path Set', 'Your default save \npath has been set.\n\nThis will take effect \nthe next time you run \nthe program'
+            'Default Save Path Set', 'Your default save path has been set.\n\nThis will take effect the next time you run the program'
             )
 
 
@@ -484,16 +487,18 @@ class SetBulletPoints():
         self.bpwin.title('Bullet point configuration')
         if use_bp == 'True':
             self.bp_status = ttk.Label(self.bpwin, text = 'Bullet points for the ingredients is currently set to True')
-            self.bp_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.bp_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
             self.bp_status = ttk.Label(self.bpwin, text = 'Bullet points for the ingredients is currently set to False')
-            self.bp_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.bpwin, text = 'Select whether you want to use bullet points')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
+            self.bp_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.bpwin, text = 'Select whether you want to use bullet points\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
         self.yes = ttk.Button(self.bpwin, text = 'Yes', command=lambda:[self.bp_true(), self.bpwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
         self.no = ttk.Button(self.bpwin, text = 'No', command=lambda:[self.bp_false(), self.bpwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        self.cancel = ttk.Button(self.bpwin, text = 'Cancel', command=lambda: self.bpwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.bpwin)} center')
 
     def bp_true(self):
@@ -504,7 +509,10 @@ class SetBulletPoints():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.bp_msgbox(choice)
+        self.bpwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def bp_false(self):
 
@@ -514,7 +522,10 @@ class SetBulletPoints():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.bp_msgbox(choice)
+        self.bpwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def bp_msgbox(self, choice):
         '''
@@ -526,7 +537,7 @@ class SetBulletPoints():
             message = ttk.Label(bp_info,
                 text = 'Bullet points will be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
+            close = ttk.Button(bp_info, text = 'Ok', command=lambda: bp_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(bp_info)} center')
         else:
@@ -535,7 +546,7 @@ class SetBulletPoints():
             message = ttk.Label(bp_info,
                 text = 'Bullet points will not be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
+            close = ttk.Button(bp_info, text = 'Ok', command=lambda: bp_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(bp_info)} center')
 
@@ -557,17 +568,19 @@ class FilenameFormat():
         self.fnfwin = tk.Toplevel(root)
         self.fnfwin.title('Filename formatting configuration')
         if fn_format == 'True':
-            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to True')
-            self.fnf_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to True\nThe recipe title will be converted to lowercase and spaces to underscores for use as the filename.')
+            self.fnf_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
-            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to False')
-            self.fnf_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.fnfwin, text = 'Select whether you want to use bullet points')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
+            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to False\nFilename will be the unmodified text of the recipe title.')
+            self.fnf_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.fnfwin, text = 'Select whether you want to use Filename formatting\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
         self.yes = ttk.Button(self.fnfwin, text = 'Yes', command=lambda:[self.fnf_true(), self.fnfwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
         self.no = ttk.Button(self.fnfwin, text = 'No', command=lambda:[self.fnf_false(), self.fnfwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        self.cancel = ttk.Button(self.fnfwin, text = 'Cancel', command=lambda: self.fnfwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.fnfwin)} center')
 
     def fnf_true(self):
@@ -578,7 +591,10 @@ class FilenameFormat():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.fnf_msgbox(choice)
+        self.fnfwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def fnf_false(self):
 
@@ -588,30 +604,10 @@ class FilenameFormat():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.fnf_msgbox(choice)
+        self.fnfwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
-    def fnf_msgbox(self, choice):
-        '''
-        Confirmation popup that the configuration choice was saved
-        '''
-        if choice == 'yes':
-            fnf_info = tk.Toplevel(root)
-            fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
-                text = 'Filenames will be formatted to lowercase and spaces converted to underscores\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(fnf_info)} center')
-        else:
-            fnf_info = tk.Toplevel(root)
-            fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
-                text = 'Filenames will be the unmodified text of the recipe title\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(fnf_info)} center')
 
 class UseDarkMode():
 
@@ -627,16 +623,19 @@ class UseDarkMode():
         self.dmwin.title('Dark Mode configuration')
         if dark_mode == 'True':
             self.dm_status = ttk.Label(self.dmwin, text = 'You are currently using the application in Dark Mode')
-            self.dm_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.dm_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
-            self.dm_status = ttk.Label(self.dmwin, text = 'You are not currently using Dark Mode')
-            self.dm_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.dmwin, text = 'Select whether you want to use Dark Mode')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
-        self.yes = ttk.Button(self.dmwin, text = 'Yes', command=lambda:[self.dm_true(), self.dmwin.destroy()])
+            self.dm_status = ttk.Label(self.dmwin, text = 'You are currently using Light Mode')
+            self.dm_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.dmwin, text = 'Select whether you want to use Dark Mode\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
+        self.yes = ttk.Button(self.dmwin, text = 'Dark Mode', command=lambda:[self.dm_true(), self.dmwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
-        self.no = ttk.Button(self.dmwin, text = 'No', command=lambda:[self.dm_false(), self.dmwin.destroy()])
+        self.no = ttk.Button(self.dmwin, text = 'Light Mode', command=lambda:[self.dm_false(), self.dmwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        root.eval(f'tk::PlaceWindow {str(self.dmwin)} center')
+        self.cancel = ttk.Button(self.dmwin, text = 'Cancel', command=lambda: self.dmwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.dmwin)} center')
 
     def dm_true(self):
@@ -647,7 +646,9 @@ class UseDarkMode():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.dm_msgbox(choice)
+        self.dmwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
     def dm_false(self):
 
@@ -657,30 +658,15 @@ class UseDarkMode():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.dm_msgbox(choice)
+        self.dmwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
-    def dm_msgbox(self, choice):
-        '''
-        Confirmation popup that the configuration choice was saved
-        '''
-        if choice == 'yes':
-            dm_info = tk.Toplevel(root)
-            dm_info.title('Dark Mode configuration set')
-            message = ttk.Label(dm_info,
-                text = 'You have turned Dark Mode on\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(dm_info, text = 'Ok', command=dm_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(dm_info)} center')
-        else:
-            dm_info = tk.Toplevel(root)
-            dm_info.title('Dark Mode configuration set')
-            message = ttk.Label(dm_info,
-                text = 'You have turned Dark Mode off\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(dm_info, text = 'Ok', command=dm_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(dm_info)} center')
+
+    #def restart(self):
+    #    python = sys.executable
+    #    os.execl(python, python, * sys.argv)
+
 
 class StartFullScreen():
     # Brings up the dialog box to set whether to start the program in fullscreen mode
@@ -715,6 +701,7 @@ class StartFullScreen():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
+        self.fswin.destroy()
         self.fs_msgbox(choice)
 
     def fs_false(self):
@@ -725,19 +712,21 @@ class StartFullScreen():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
+        self.fswin.destroy()
         self.fs_msgbox(choice)
 
     def fs_msgbox(self, choice):
         '''
         Confirmation popup that the configuration choice was saved
         '''
+
         if choice == 'yes':
             fs_info = tk.Toplevel(root)
             fs_info.title('Fullscreen startup configuration set')
             message = ttk.Label(fs_info,
-                text = 'The program will now start up in Fullscreen mode')
+                text = 'The program will start up in Fullscreen mode next time')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fs_info, text = 'Ok', command=fs_info.destroy)
+            close = ttk.Button(fs_info, text = 'Ok', command=lambda: fs_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(fs_info)} center')
         else:
@@ -746,9 +735,10 @@ class StartFullScreen():
             message = ttk.Label(fs_info,
                 text = 'The program will now start up scaled\nbased on your screen geometry')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fs_info, text = 'Ok', command=fs_info.destroy)
+            close = ttk.Button(fs_info, text = 'Ok', command=lambda: fs_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(fs_info)} center')
+
 
 
 class HelpWindow():
