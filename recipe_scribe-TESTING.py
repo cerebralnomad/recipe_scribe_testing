@@ -468,9 +468,18 @@ class DefaultPath():
         '''
         Confirmation popup that the default path was saved
         '''
-        msg.showinfo(
-            'Default Save Path Set', 'Your default save path has been set.\n\nThis will take effect the next time you run the program'
-            )
+        #msg.showinfo(
+        #    'Default Save Path Set', 'Your default save path has been set.\n\nThis will take effect the next time you run the program'
+        #    )
+
+        r = msg.askquestion('Default Save Path Set', 'Your default save path has been set.\nWould you like to restart to apply the change?')
+
+        if r == 'yes':
+            python = sys.executable
+            os.execl(python, python, * sys.argv)
+        else:
+            pass
+            #msg.showinfo('Return', 'Returning without restart')
 
 
 class SetBulletPoints():
@@ -775,7 +784,7 @@ class HelpWindow():
         self.help_box.insert(1.0, help_text)
         self.help_box.configure(state = 'disabled')
         self.help_button = tk.Button(self.helpwin, text='Close', command=self.helpwin.destroy)
-        self.help_button.configure(foreground = text_color, background = '#c4c4c4')
+        self.help_button.configure(foreground = 'black', background = '#c4c4c4')
         self.help_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='we')
 
 class AboutWindow():
@@ -806,7 +815,7 @@ class AboutWindow():
         self.about_box.insert(1.0, about_text)
         self.about_box.configure(state = 'disabled')
         self.about_button = tk.Button(self.aboutwin, text='Close', command=self.aboutwin.destroy)
-        self.about_button.configure(foreground = text_color, background = '#c4c4c4')
+        self.about_button.configure(foreground = 'black', background = '#c4c4c4')
         self.about_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='WE')
 
 class Search():
@@ -960,15 +969,7 @@ class Search():
         root.config(menu=menu_bar)
         menu_bar.config(background = background, foreground = text_color)
         menu_bar.add_command(label='Create New recipe', command=self.create)
-
-        # Code for the cascading Help menu
-        help_menu = Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label='Program Help  Ctrl+h')
-        help_menu.add_separator()
-        help_menu.add_command(label='About')
-        help_menu.configure(background = background, foreground = text_color)
-        menu_bar.add_cascade(label='Help', menu=help_menu)
-
+        menu_bar.add_command(label='      ', state='disabled')
         menu_bar.add_command(label='Quit', command=self._quit)
 
         # Top frame for search entry
