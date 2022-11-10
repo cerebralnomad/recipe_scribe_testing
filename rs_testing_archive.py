@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 '''
-Switching frames now works in full screen without the loss
-of the menu bar.
+All features working as intended.
 Archiving at this point to preserve progress.
-Config parser still commented out and many development related
-comments need to be removed.
+
+Need to test as is on Zeus then add the program
+icon and test again.
+Maybe that will help determine the compatibility
+issue with python version below 3.10
+
+Need to add comments to new search code
 
 '''
 
@@ -16,19 +20,22 @@ from tkinter import Menu
 from tkinter import messagebox as msg
 from tkinter import filedialog
 import re
+import os
+import sys
 import configparser
 import glob
 from os import path
 import ToolTip as tt
 from HelpText import help_text
 from AboutText import about_text
+import time
 
 
 
 '''
 ConfigParser options comment prefixes and allow no value
 let's me include comments in the config file that will not
-be stripped on a write to the file initiated by the GUI
+be stripped on a write to the file initiated from the GUI
 
 The optionxform setting preserves capitialization in those comments
 '''
@@ -37,7 +44,7 @@ config.optionxform = str
 
 # Set the variables from the config file if it exists
 # If not create it with the default values
-'''
+
 if path.exists("CONFIG"):
     config.read("CONFIG")
     save_path = config.get('DefaultSavePath', 'save_path')
@@ -89,6 +96,8 @@ if dark_mode == 'True' or dark_mode == 'true':
     scroll_bg = '#464444'
     scrollbar_color = '#858585'
     insert_bg = 'white'
+    button_bg = '#404040'
+    button_fg = 'white'
 else:
     background = '#d4d4d4'
     text_color = 'black'
@@ -100,29 +109,14 @@ else:
     scroll_bg = '#cccccc'
     scrollbar_color = '#858585'
     insert_bg = 'black'
-'''
-
-fullscreen = 'False'
-background = '#d4d4d4'
-text_color = 'black'
-entry_bg = '#f2f2f2'
-entry_text = 'black'
-label_bg = '#d4d4d4'
-label_text = 'black'
-scroll_color = '#bababa'
-scroll_bg = '#cccccc'
-scrollbar_color = '#858585'
-save_path = "None"
-use_bp = "True"
-fn_format = "True"
-dark_mode = "False"
-insert_bg = 'black'
+    button_bg = '#c4c4c4'
+    button_fg = 'black'
 
 root = tk.Tk()
 if fullscreen == 'True' or fullscreen == 'true':
     root.attributes('-zoomed', True)
-    #width = int(root.winfo_screenwidth() / 1.01)
-    #height = int(root.winfo_screenheight() / 1.01)
+    #width = int(root.winfo_screenwidth())
+    #height = int(root.winfo_screenheight())
 else:
     width = int(root.winfo_screenwidth() / 1.9)
     height = int(root.winfo_screenheight() / 1.2)
@@ -133,11 +127,17 @@ root.rowconfigure(1, weight = 1)
 root.columnconfigure(0, weight = 1)
 root.columnconfigure(1, weight = 3)
 style = ttk.Style()
+root.update_idletasks()
 
 style.configure('TLabelframe', background = background)
 style.configure('TLabelframe.Label', background = background)
 
-search_path = '/home/clay/Documents/recipes/**/*'
+# Add the wildcards to the save path for use in the search function
+
+search_path = save_path + '/**/*'
+
+
+fs = ''
 
 class MAIN():
     '''
@@ -148,13 +148,21 @@ class MAIN():
         Hack to prevent the loss of the menu bar when switching
         frames in full screen.
         Instantly resizing the window size down and back to
-        full brings the menu back.
+        full brings the menu back seamlessly.
+
+        The elif is in case launch was not in fullscreen, but the window
+        was maximized after switching to the search page.
         '''
         if fullscreen == 'True' or fullscreen == 'true':
             width = int(root.winfo_screenwidth() / 1.9)
             height = int(root.winfo_screenheight() / 1.2)
             root.geometry('%sx%s' % (width, height))
             root.attributes('-zoomed', True)
+
+        elif fs == "F":
+            w = (root.winfo_width())
+            h = (root.winfo_height())
+            root.geometry('%sx%s' % (w-1, h-1))
 
         '''
         Create the root window, call the methods to create
@@ -179,7 +187,6 @@ class MAIN():
         root.bind('<Control-n>', self._new)
         root.bind('<Control-q>', self._quit)
         root.bind('<Control-h>', HelpWindow)
-        root.bind('<Control-c>', DefaultPath)
 
     def _quit(self, event='q'):
         '''
@@ -241,7 +248,7 @@ class MAIN():
         if use_bp =="True" or use_bp == "true":
             for i in ingredients:
                 line = i
-                if re.match('\.', line):
+                if re.match('\.', line): # Lines beginning with a . are written as is
                     newline = re.sub(r'\.', '', line)
                     file.write(newline + '\n')
                 elif not re.match('\w', line): # using re import for regex search to see if line contains letters or numbers
@@ -265,17 +272,26 @@ class MAIN():
         	1. First do this thing.
         	   Then do this further thing
 
-        This makes the directions look better without requiring manual indentation
-        However, step 10 and beyond will result in one space of indentation too many.
+        This makes the directions look better without requiring manual
+        indentation
+        However, step 10 and beyond will result in one space of indentation
+        too many.
         Few recipes have more than 9 steps normally.
         This issue may be looked at later.
+
+        Lines in Directions beginning with a period will not be indented.
+        This will allow for the inclusion of notes or links without having them
+        indented in the saved file.
         '''
         for i in directions:
-        	line = i
-        	if re.match('[1-9]', line):
-        		file.write(line + '\n')
-        	else:
-        		file.write('   ' + line + '\n')
+            line = i
+            if re.match('[1-9]', line):
+                file.write(line + '\n')
+            elif re.match('\.', line): # Do not indent lines beginning with a period
+                newline = re.sub(r'\.', '', line) # Remove the . before writing
+                file.write(newline + '\n')
+            else:
+                file.write('   ' + line + '\n')
 
         file.write("\n\n\n")
         file.close()
@@ -293,7 +309,7 @@ class MAIN():
     def search(self):
         Search(root)
         self.frame.pack_forget()
-        #self.frame.destroy()
+
 
     def create_widgets(self):
         '''
@@ -339,30 +355,15 @@ class MAIN():
         help_menu.add_command(label='About', command=AboutWindow)
         help_menu.configure(background = background, foreground = text_color)
         menu_bar.add_cascade(label='Help', menu=help_menu)
-
-        menu_bar.add_command(label = 'Search', command=self.search)
-
-        '''
-        ====================================================================
-        Recipe name entry box to be replaced with search term box
-        To the right of the box will be two check boxes
-        One for Ingredient Search and one for Filename Search
-        Filename will be preselected. Selecting ingredient will
-        deselect filename and vice versa
-        Stack the check boxes and place a search button to the right of them
-        ====================================================================
-        '''
+        # Spacer to set the Search command apart from the rest of the manu
+        menu_bar.add_command(label='         ', command=None, state='disabled')
+        # Command to switch to the Search window
+        menu_bar.add_command(label = 'Search Recipes', command=self.search)
 
         # Top frame for the recipe name entry
         nameLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Enter Recipe Title')
         self.title_frame = ttk.LabelFrame(self.frame, labelwidget=nameLabel)
         self.title_frame.grid(column=0, row=0, columnspan=2, padx=8, pady=4, sticky='W')
-
-        '''
-        ===================================================================
-        Ingredients box will be used to display the returned search results
-        ===================================================================
-        '''
 
         # Left frame for the ingredients list
         ingLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Ingreidents')
@@ -371,25 +372,12 @@ class MAIN():
         self.ing_frame.rowconfigure(0, weight = 1)
         self.ing_frame.columnconfigure(0, weight = 1)
 
-        '''
-        ====================================================================
-        Directions box will be used to display a recipe when clicked on in
-        the search results box (hopefully)
-        ====================================================================
-        '''
-
         # Right frame for the directions
         dirLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Directions')
         self.dir_frame = ttk.LabelFrame(self.frame, labelwidget=dirLabel)
         self.dir_frame.grid(column=1, row=1, padx=8, pady=4, sticky='nwes')
         self.dir_frame.rowconfigure(0, weight = 1)
         self.dir_frame.columnconfigure(0, weight = 1)
-
-        '''
-        =====================================================================
-        Change this to say "Enter search term here"
-        =====================================================================
-        '''
 
         # Adding a text box entry widget for the recipe title
         self.title = tk.StringVar()
@@ -420,6 +408,7 @@ class MAIN():
 
         self.title_entered.focus()  # Place cursor into the title entry box
 
+
 class DefaultPath():
     '''
     Brings up the dialog box to set a default save path for use as
@@ -442,9 +431,9 @@ class DefaultPath():
             self.current_loc.grid(column=1, row=1, columnspan=2, padx=(10), pady=(15, 0), sticky='WE')
         self.msg = ttk.Label(self.pathwin, text='Click Browse to select your default save location')
         self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
-        self.button = ttk.Button(self.pathwin, text=' Browse ', command=self.set_path)
+        self.button = ttk.Button(self.pathwin, text=' Browse ', command=lambda: [self.pathwin.destroy(), self.set_path()])
         self.button.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
-        self.cancel = ttk.Button(self.pathwin, text=' Cancel ', command=self.pathwin.destroy)
+        self.cancel = ttk.Button(self.pathwin, text=' Cancel ', command=lambda: self.pathwin.destroy())
         self.cancel.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
 
     def set_path(self):
@@ -462,9 +451,18 @@ class DefaultPath():
         '''
         Confirmation popup that the default path was saved
         '''
-        msg.showinfo(
-            'Default Save Path Set', 'Your default save \npath has been set.\n\nThis will take effect \nthe next time you run \nthe program'
-            )
+        #msg.showinfo(
+        #    'Default Save Path Set', 'Your default save path has been set.\n\nThis will take effect the next time you run the program'
+        #    )
+
+        r = msg.askquestion('Default Save Path Set', 'Your default save path has been set.\nWould you like to restart to apply the change?')
+
+        if r == 'yes':
+            python = sys.executable
+            os.execl(python, python, * sys.argv)
+        else:
+            pass
+            #msg.showinfo('Return', 'Returning without restart')
 
 
 class SetBulletPoints():
@@ -481,16 +479,18 @@ class SetBulletPoints():
         self.bpwin.title('Bullet point configuration')
         if use_bp == 'True':
             self.bp_status = ttk.Label(self.bpwin, text = 'Bullet points for the ingredients is currently set to True')
-            self.bp_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.bp_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
             self.bp_status = ttk.Label(self.bpwin, text = 'Bullet points for the ingredients is currently set to False')
-            self.bp_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.bpwin, text = 'Select whether you want to use bullet points')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
+            self.bp_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.bpwin, text = 'Select whether you want to use bullet points\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
         self.yes = ttk.Button(self.bpwin, text = 'Yes', command=lambda:[self.bp_true(), self.bpwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
         self.no = ttk.Button(self.bpwin, text = 'No', command=lambda:[self.bp_false(), self.bpwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        self.cancel = ttk.Button(self.bpwin, text = 'Cancel', command=lambda: self.bpwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.bpwin)} center')
 
     def bp_true(self):
@@ -501,7 +501,10 @@ class SetBulletPoints():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.bp_msgbox(choice)
+        self.bpwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def bp_false(self):
 
@@ -511,7 +514,10 @@ class SetBulletPoints():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.bp_msgbox(choice)
+        self.bpwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def bp_msgbox(self, choice):
         '''
@@ -523,7 +529,7 @@ class SetBulletPoints():
             message = ttk.Label(bp_info,
                 text = 'Bullet points will be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
+            close = ttk.Button(bp_info, text = 'Ok', command=lambda: bp_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(bp_info)} center')
         else:
@@ -532,7 +538,7 @@ class SetBulletPoints():
             message = ttk.Label(bp_info,
                 text = 'Bullet points will not be used in the ingredients list\nPlease restart the application')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(bp_info, text = 'Ok', command=bp_info.destroy)
+            close = ttk.Button(bp_info, text = 'Ok', command=lambda: bp_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(bp_info)} center')
 
@@ -551,65 +557,49 @@ class FilenameFormat():
 
         # Create the popup to select the configuration setting
 
-        #self.fnfwin = tk.Tk()
         self.fnfwin = tk.Toplevel(root)
         self.fnfwin.title('Filename formatting configuration')
         if fn_format == 'True':
-            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to True')
-            self.fnf_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to True\nThe recipe title will be converted to lowercase and spaces to underscores for use as the filename.')
+            self.fnf_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
-            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to False')
-            self.fnf_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.fnfwin, text = 'Select whether you want to use bullet points')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
+            self.fnf_status = ttk.Label(self.fnfwin, text = 'Filename formatting is currently set to False\nFilename will be the unmodified text of the recipe title.')
+            self.fnf_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.fnfwin, text = 'Select whether you want to use Filename formatting\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
         self.yes = ttk.Button(self.fnfwin, text = 'Yes', command=lambda:[self.fnf_true(), self.fnfwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
         self.no = ttk.Button(self.fnfwin, text = 'No', command=lambda:[self.fnf_false(), self.fnfwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        self.cancel = ttk.Button(self.fnfwin, text = 'Cancel', command=lambda: self.fnfwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.fnfwin)} center')
 
     def fnf_true(self):
 
-        # Set the use_bp setting in the CONFIG file to True
+        # Set the fn_format setting in the CONFIG file to True
 
         config.set("FormatFileName", "fn_format", "True")
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.fnf_msgbox(choice)
+        self.fnfwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+
 
     def fnf_false(self):
 
-        # Set the use_bp setting in the CONFIG file to False
+        # Set the fn_format setting in the CONFIG file to False
 
         config.set("FormatFileName", "fn_format", "False")
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.fnf_msgbox(choice)
+        self.fnfwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
-    def fnf_msgbox(self, choice):
-        '''
-        Confirmation popup that the configuration choice was saved
-        '''
-        if choice == 'yes':
-            fnf_info = tk.Toplevel(root)
-            fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
-                text = 'Filenames will be formatted to lowercase and spaces converted to underscores\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(fnf_info)} center')
-        else:
-            fnf_info = tk.Toplevel(root)
-            fnf_info.title('Filename formatting configuration set')
-            message = ttk.Label(fnf_info,
-                text = 'Filenames will be the unmodified text of the recipe title\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fnf_info, text = 'Ok', command=fnf_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(fnf_info)} center')
 
 class UseDarkMode():
 
@@ -625,16 +615,19 @@ class UseDarkMode():
         self.dmwin.title('Dark Mode configuration')
         if dark_mode == 'True':
             self.dm_status = ttk.Label(self.dmwin, text = 'You are currently using the application in Dark Mode')
-            self.dm_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
+            self.dm_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
         else:
-            self.dm_status = ttk.Label(self.dmwin, text = 'You are not currently using Dark Mode')
-            self.dm_status.grid(column=1, row=1, columnspan=2, padx=10, pady=(15, 0), sticky='WE')
-        self.msg = ttk.Label(self.dmwin, text = 'Select whether you want to use Dark Mode')
-        self.msg.grid(column=1, row=2, columnspan=2, padx=10, pady=(10, 25), sticky='WE')
-        self.yes = ttk.Button(self.dmwin, text = 'Yes', command=lambda:[self.dm_true(), self.dmwin.destroy()])
+            self.dm_status = ttk.Label(self.dmwin, text = 'You are currently using Light Mode')
+            self.dm_status.grid(column=1, row=1, columnspan=3, padx=10, pady=(15, 0), sticky='WE')
+        self.msg = ttk.Label(self.dmwin, text = 'Select whether you want to use Dark Mode\nWARNING: Program will restart. Select Cancel if you have unsaved data.')
+        self.msg.grid(column=1, row=2, columnspan=3, padx=10, pady=(10, 25), sticky='WE')
+        self.yes = ttk.Button(self.dmwin, text = 'Dark Mode', command=lambda:[self.dm_true(), self.dmwin.destroy()])
         self.yes.grid(column=1, row=3, padx=10, pady=(0, 25), sticky='WE')
-        self.no = ttk.Button(self.dmwin, text = 'No', command=lambda:[self.dm_false(), self.dmwin.destroy()])
+        self.no = ttk.Button(self.dmwin, text = 'Light Mode', command=lambda:[self.dm_false(), self.dmwin.destroy()])
         self.no.grid(column=2, row=3, padx=10, pady=(0, 25), sticky='WE')
+        root.eval(f'tk::PlaceWindow {str(self.dmwin)} center')
+        self.cancel = ttk.Button(self.dmwin, text = 'Cancel', command=lambda: self.dmwin.destroy())
+        self.cancel.grid(column=3, row=3, padx=10, pady=(0, 25), sticky='WE')
         root.eval(f'tk::PlaceWindow {str(self.dmwin)} center')
 
     def dm_true(self):
@@ -645,7 +638,9 @@ class UseDarkMode():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
-        self.dm_msgbox(choice)
+        self.dmwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
     def dm_false(self):
 
@@ -655,30 +650,15 @@ class UseDarkMode():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
-        self.dm_msgbox(choice)
+        self.dmwin.destroy()
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
 
-    def dm_msgbox(self, choice):
-        '''
-        Confirmation popup that the configuration choice was saved
-        '''
-        if choice == 'yes':
-            dm_info = tk.Toplevel(root)
-            dm_info.title('Dark Mode configuration set')
-            message = ttk.Label(dm_info,
-                text = 'You have turned Dark Mode on\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(dm_info, text = 'Ok', command=dm_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(dm_info)} center')
-        else:
-            dm_info = tk.Toplevel(root)
-            dm_info.title('Dark Mode configuration set')
-            message = ttk.Label(dm_info,
-                text = 'You have turned Dark Mode off\nPlease restart the application')
-            message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(dm_info, text = 'Ok', command=dm_info.destroy)
-            close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
-            root.eval(f'tk::PlaceWindow {str(dm_info)} center')
+
+    #def restart(self):
+    #    python = sys.executable
+    #    os.execl(python, python, * sys.argv)
+
 
 class StartFullScreen():
     # Brings up the dialog box to set whether to start the program in fullscreen mode
@@ -713,6 +693,7 @@ class StartFullScreen():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'yes'
+        self.fswin.destroy()
         self.fs_msgbox(choice)
 
     def fs_false(self):
@@ -723,19 +704,21 @@ class StartFullScreen():
         with open('CONFIG', 'w+') as configfile:
             config.write(configfile)
         choice = 'no'
+        self.fswin.destroy()
         self.fs_msgbox(choice)
 
     def fs_msgbox(self, choice):
         '''
         Confirmation popup that the configuration choice was saved
         '''
+
         if choice == 'yes':
             fs_info = tk.Toplevel(root)
             fs_info.title('Fullscreen startup configuration set')
             message = ttk.Label(fs_info,
-                text = 'The program will now start up in Fullscreen mode')
+                text = 'The program will start up in Fullscreen mode next time')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fs_info, text = 'Ok', command=fs_info.destroy)
+            close = ttk.Button(fs_info, text = 'Ok', command=lambda: fs_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(fs_info)} center')
         else:
@@ -744,9 +727,10 @@ class StartFullScreen():
             message = ttk.Label(fs_info,
                 text = 'The program will now start up scaled\nbased on your screen geometry')
             message.grid(column=1, row=1, padx=10, pady=(25, 25), sticky='WE')
-            close = ttk.Button(fs_info, text = 'Ok', command=fs_info.destroy)
+            close = ttk.Button(fs_info, text = 'Ok', command=lambda: fs_info.destroy())
             close.grid(column=1, row=2, padx=10, pady=(0, 10), sticky='WE')
             root.eval(f'tk::PlaceWindow {str(fs_info)} center')
+
 
 
 class HelpWindow():
@@ -783,7 +767,7 @@ class HelpWindow():
         self.help_box.insert(1.0, help_text)
         self.help_box.configure(state = 'disabled')
         self.help_button = tk.Button(self.helpwin, text='Close', command=self.helpwin.destroy)
-        self.help_button.configure(foreground = text_color, background = '#c4c4c4')
+        self.help_button.configure(foreground=button_fg, background=button_bg)
         self.help_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='we')
 
 class AboutWindow():
@@ -814,26 +798,41 @@ class AboutWindow():
         self.about_box.insert(1.0, about_text)
         self.about_box.configure(state = 'disabled')
         self.about_button = tk.Button(self.aboutwin, text='Close', command=self.aboutwin.destroy)
-        self.about_button.configure(foreground = text_color, background = '#c4c4c4')
+        self.about_button.configure(foreground=button_fg, background=button_bg)
         self.about_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='WE')
 
 class Search():
 
     '''
-    The main window where the recipe information is entered
+    The main window where the search is performed
     '''
     def __init__(self, master):
         '''
         Hack to prevent the loss of the menu bar when switching
         frames in full screen.
-        Instantly resizing the window size down and back to
-        full brings the menu back.
+        If the program was launched in fullscreen, instantly resizing
+        the window size down and back to full brings the menu back seamlessly.
+
+        The else statement is for when the program was maximized after launch.
+        The global fs variable is for when the screen was maximized only after
+        switching to the search window.
+        I know, I know...
         '''
+
         if fullscreen == 'True' or fullscreen == 'true':
             width = int(root.winfo_screenwidth() / 1.9)
             height = int(root.winfo_screenheight() / 1.2)
             root.geometry('%sx%s' % (width, height))
             root.attributes('-zoomed', True)
+
+        else:
+            global fs
+            fs = 'F'
+            w = (root.winfo_width())
+            h = (root.winfo_height())
+            root.geometry('%sx%s' % (w-1, h-1))
+
+
 
         '''
         Create the root window, call the methods to create
@@ -849,48 +848,99 @@ class Search():
         master.title('Recipe Search')
         self.create_widgets()
 
-
+    # Function to perform a search of the ingredients in all recipes
 
     def ingSearch(self):
             rec_files = glob.glob(search_path, recursive = True)
-            search_str = self.search_entered.get()
+            get_term = self.search_entered.get()
             self.search_results = {}
+            self.results.configure(state='normal')
+            # Clear the results and display boxes of previous search, if any
             self.results.delete(0, 'end')
             self.display.delete(1.0, 'end')
 
             # use try loop to avoid trying to open directories in the file list
 
-            for file in rec_files:
+            if '+' in get_term:
                 try:
-                        with open(file, 'r') as f:
-                                contents = f.read()
-                        # use re.findall to make search case insensitive
-                        if re.findall(search_str, contents, flags=re.IGNORECASE):
-                                self.search_results[file]=path.basename(file)
-                                file.close()
-
+                    term1, term2 = re.sub(r' ', '', get_term).split('+')
                 except:
+                    self.results.insert(0, 'ERROR')
+                    self.results.insert(1, 'More than 2 search terms.')
+
+                search1 = {}
+                search2 = {}
+
+                for file in rec_files:
+                    try:
+                        with open(file, 'r') as f:
+                            contents = f.read()
+
+                        if re.search(term1, contents, flags=re.IGNORECASE):
+                            search1[file]=path.basename(file)
+                            #self.search_results[file]=path.basename(file)
+
+                        if re.search(term2, contents, flags=re.IGNORECASE):
+                            search2[file]=path.basename(file)
+
+                    except:
                         pass
+
+                self.search_results = dict(search1.items() & search2.items())
+
+            else:
+                search_str = get_term
+                print(search_str)
+                print(type(search_str))
+                for file in rec_files:
+                    try:
+                        with open(file, 'r') as f:
+                            contents = f.read()
+                        if re.search(search_str, contents, flags=re.IGNORECASE):
+                            self.search_results[file]=path.basename(file)
+
+                    except:
+                        pass
+
+            #for file in rec_files:
+            #    try:
+            #            with open(file, 'r') as f:
+            #                    contents = f.read()
+                        # use re.findall to make search case insensitive
+            #            if re.findall(search_str, contents, flags=re.IGNORECASE):
+            #                    self.search_results[file]=path.basename(file)
+            #                    file.close()
+
+            #    except:
+            #            pass
             for i in self.search_results.values():
                     self.results.insert(0, i)
-                    #self.results.insert(n, i)
 
-    # Code to perform a search of the recipe titles
+
+    # Function to perform a search of the recipe titles
 
     def titleSearch(self):
             rec_files = glob.glob(search_path, recursive = True) # gather list to search
             search_str = self.search_entered.get()  # get the term to be searched for
+
             self.search_results = {}
+            self.results.configure(state='normal')
             self.results.delete(0, 'end') # Clear results box to keep multiple searches from appending
             self.display.delete(1.0, 'end') # Clear the display box of any previous search results
+            if '+' in search_str:
+                search_str = 'junktext'
+                self.results.insert(0, 'ERROR')
+                self.results.insert(1, 'Single word only for title search')
+
             for file in rec_files:
-                    # use re.findall to make search case insensitive
-                    if re.findall(search_str, file, flags=re.IGNORECASE):
+                    # use re.search to make search case insensitive
+                    if re.search(search_str, file, flags=re.IGNORECASE):
                             self.search_results[file]=path.basename(file) # set key as full path, value as filename
             for i in self.search_results.values():
                     self.results.insert(0, i)
 
-    # Code to display the selected recipe in the display box
+
+    # Function to display the selected recipe in the display box
 
     def viewRec(self, event):
             # separate the file names and their full paths into lists
@@ -898,10 +948,13 @@ class Search():
             val_list = list(self.search_results.values()) # filenames from search results
             for i in self.results.curselection():
                     file = self.results.get(i) # get the currently selected filename
+                    # Get the position of the filename in the list
                     position = val_list.index(file)
-                    self.cur_path = key_list[position] # Save full path of selected recipe
+                    # Get and save the full path from the same position in the key list
+                    self.cur_path = key_list[position]
                     self.display.delete(1.0, 'end') # clear recipe display box
-                    with open(key_list[position], 'r') as f: # Display selected recipe in right hand pane
+                    # Open selected recipe using the full path
+                    with open(key_list[position], 'r') as f:
                             contents = f.read()
                             self.display.insert(1.0, contents)
 
@@ -913,7 +966,10 @@ class Search():
                     file.close()
             self.savebutton.config(state='disabled') # Disable save button after saving file
 
-    # Function to enable the save button when the mouse is clicked in the recipe display box
+    # Function to enable the save button when the mouse is clicked in the
+    # recipe display box
+    # Clicking the save button with the box empty resulted in silent errors
+    # that show up when running from CLI
 
     def saveEnable(self, arg):
             self.savebutton.config(state='normal')
@@ -926,9 +982,10 @@ class Search():
         root.quit()
         root.destroy()
 
+    # Function to switch to the main window
+
     def create(self):
         MAIN(root)
-        #self.frame.destroy()
         self.frame.pack_forget()
 
     def create_widgets(self):
@@ -937,20 +994,15 @@ class Search():
         '''
 
         # Creating a Menu Bar
+        # Menu is a smaller version than on the main window since the
+        # file menu had no purpose here and the config menu was
+        # unnecessary on both pages
 
         menu_bar = Menu(root)
         root.config(menu=menu_bar)
         menu_bar.config(background = background, foreground = text_color)
         menu_bar.add_command(label='Create New recipe', command=self.create)
-
-        # Code for the cascading Help menu
-        help_menu = Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label='Program Help  Ctrl+h')
-        help_menu.add_separator()
-        help_menu.add_command(label='About')
-        help_menu.configure(background = background, foreground = text_color)
-        menu_bar.add_cascade(label='Help', menu=help_menu)
-
+        menu_bar.add_command(label='      ', state='disabled')
         menu_bar.add_command(label='Quit', command=self._quit)
 
         # Top frame for search entry
@@ -994,21 +1046,25 @@ class Search():
 
         # Add button for Title search
         self.tsbutton = tk.Button(self.sbutton_frame, text='Title Search', relief='raised', command = self.titleSearch)
+        self.tsbutton.configure(background = button_bg, foreground = button_fg)
         self.tsbutton.grid(column=0, row=1, padx=8, pady=(3, 8), sticky='W')
 
         # Add button for Ingredient search
         self.ingbutton = tk.Button(self.sbutton_frame, text='Ingredient Search', relief='raised', command = self.ingSearch)
+        self.ingbutton.configure(background = button_bg, foreground = button_fg)
         self.ingbutton.grid(column=1, row=1, padx=8, pady=(3, 8))
 
         # Add button to save edits
         self.savebutton = tk.Button(self.svbutton_frame, text='Save Edits', relief='raised', command = self.saveEdit)
         self.savebutton.grid(column=0, row=1, padx=8, pady=(3, 8))
-        self.savebutton.config(state='disabled')
+        # Save button disabled initially. It becomes enabled when the mouse
+        # is clicked in the display pane to make any edits.
+        self.savebutton.config(background = button_bg, foreground = button_fg, state='disabled')
 
         # Search results box
         self.results = tk.Listbox(self.result_frame, width = 30, bd=5, selectmode=tk.SINGLE,\
                  relief=tk.RIDGE)
-        self.results.configure(background = entry_bg, foreground = entry_text)
+        self.results.configure(background = entry_bg, foreground = entry_text, state='disabled')
         self.results.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.results.bind('<<ListboxSelect>>', self.viewRec)
 

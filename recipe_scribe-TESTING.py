@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 '''
-Switching frames now works in full screen without the loss
-of the menu bar.
+All features working as intended.
 Archiving at this point to preserve progress.
 
-Config parser has been restored.
+Need to test as is on Zeus then add the program
+icon and test again.
+Maybe that will help determine the compatibility
+issue with python version below 3.10
 
-Added the check for leading . in directions to escape indent
+Need to add comments to new search code
 
 '''
 
@@ -94,6 +96,8 @@ if dark_mode == 'True' or dark_mode == 'true':
     scroll_bg = '#464444'
     scrollbar_color = '#858585'
     insert_bg = 'white'
+    button_bg = '#404040'
+    button_fg = 'white'
 else:
     background = '#d4d4d4'
     text_color = 'black'
@@ -105,33 +109,14 @@ else:
     scroll_bg = '#cccccc'
     scrollbar_color = '#858585'
     insert_bg = 'black'
-
-# =================================================
-# Remove these variables after enabling the parser
-# Their values will be pulled from the CONFIG file
-
-#fullscreen = 'False'
-#background = '#d4d4d4'
-#text_color = 'black'
-#entry_bg = '#f2f2f2'
-#entry_text = 'black'
-#label_bg = '#d4d4d4'
-#label_text = 'black'
-#scroll_color = '#bababa'
-#scroll_bg = '#cccccc'
-#scrollbar_color = '#858585'
-#save_path = "None"
-#use_bp = "True"
-#fn_format = "True"
-#dark_mode = "False"
-#insert_bg = 'black'
-# ===================================================
+    button_bg = '#c4c4c4'
+    button_fg = 'black'
 
 root = tk.Tk()
 if fullscreen == 'True' or fullscreen == 'true':
     root.attributes('-zoomed', True)
-    #width = int(root.winfo_screenwidth() / 1.01)
-    #height = int(root.winfo_screenheight() / 1.01)
+    #width = int(root.winfo_screenwidth())
+    #height = int(root.winfo_screenheight())
 else:
     width = int(root.winfo_screenwidth() / 1.9)
     height = int(root.winfo_screenheight() / 1.2)
@@ -147,11 +132,10 @@ root.update_idletasks()
 style.configure('TLabelframe', background = background)
 style.configure('TLabelframe.Label', background = background)
 
-# Uncomment search_path and remove hard code path after
-# Parser is enabled
+# Add the wildcards to the save path for use in the search function
 
-search_path = save_path
-#search_path = '/home/clay/Documents/recipes/**/*'
+search_path = save_path + '/**/*'
+
 
 fs = ''
 
@@ -203,7 +187,6 @@ class MAIN():
         root.bind('<Control-n>', self._new)
         root.bind('<Control-q>', self._quit)
         root.bind('<Control-h>', HelpWindow)
-        #root.bind('<Control-c>', DefaultPath)
 
     def _quit(self, event='q'):
         '''
@@ -265,7 +248,7 @@ class MAIN():
         if use_bp =="True" or use_bp == "true":
             for i in ingredients:
                 line = i
-                if re.match('\.', line):
+                if re.match('\.', line): # Lines beginning with a . are written as is
                     newline = re.sub(r'\.', '', line)
                     file.write(newline + '\n')
                 elif not re.match('\w', line): # using re import for regex search to see if line contains letters or numbers
@@ -784,7 +767,7 @@ class HelpWindow():
         self.help_box.insert(1.0, help_text)
         self.help_box.configure(state = 'disabled')
         self.help_button = tk.Button(self.helpwin, text='Close', command=self.helpwin.destroy)
-        self.help_button.configure(foreground = 'black', background = '#c4c4c4')
+        self.help_button.configure(foreground=button_fg, background=button_bg)
         self.help_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='we')
 
 class AboutWindow():
@@ -815,7 +798,7 @@ class AboutWindow():
         self.about_box.insert(1.0, about_text)
         self.about_box.configure(state = 'disabled')
         self.about_button = tk.Button(self.aboutwin, text='Close', command=self.aboutwin.destroy)
-        self.about_button.configure(foreground = 'black', background = '#c4c4c4')
+        self.about_button.configure(foreground=button_fg, background=button_bg)
         self.about_button.grid(column=0, row=1, padx=50, pady=(0, 15), sticky='WE')
 
 class Search():
@@ -869,25 +852,67 @@ class Search():
 
     def ingSearch(self):
             rec_files = glob.glob(search_path, recursive = True)
-            search_str = self.search_entered.get()
+            get_term = self.search_entered.get()
             self.search_results = {}
+            self.results.configure(state='normal')
             # Clear the results and display boxes of previous search, if any
             self.results.delete(0, 'end')
             self.display.delete(1.0, 'end')
 
             # use try loop to avoid trying to open directories in the file list
 
-            for file in rec_files:
+            if '+' in get_term:
                 try:
-                        with open(file, 'r') as f:
-                                contents = f.read()
-                        # use re.findall to make search case insensitive
-                        if re.findall(search_str, contents, flags=re.IGNORECASE):
-                                self.search_results[file]=path.basename(file)
-                                file.close()
-
+                    term1, term2 = re.sub(r' ', '', get_term).split('+')
                 except:
+                    self.results.insert(0, 'ERROR')
+                    self.results.insert(1, 'More than 2 search terms.')
+
+                search1 = {}
+                search2 = {}
+
+                for file in rec_files:
+                    try:
+                        with open(file, 'r') as f:
+                            contents = f.read()
+
+                        if re.search(term1, contents, flags=re.IGNORECASE):
+                            search1[file]=path.basename(file)
+                            #self.search_results[file]=path.basename(file)
+
+                        if re.search(term2, contents, flags=re.IGNORECASE):
+                            search2[file]=path.basename(file)
+
+                    except:
                         pass
+
+                self.search_results = dict(search1.items() & search2.items())
+
+            else:
+                search_str = get_term
+                print(search_str)
+                print(type(search_str))
+                for file in rec_files:
+                    try:
+                        with open(file, 'r') as f:
+                            contents = f.read()
+                        if re.search(search_str, contents, flags=re.IGNORECASE):
+                            self.search_results[file]=path.basename(file)
+
+                    except:
+                        pass
+
+            #for file in rec_files:
+            #    try:
+            #            with open(file, 'r') as f:
+            #                    contents = f.read()
+                        # use re.findall to make search case insensitive
+            #            if re.findall(search_str, contents, flags=re.IGNORECASE):
+            #                    self.search_results[file]=path.basename(file)
+            #                    file.close()
+
+            #    except:
+            #            pass
             for i in self.search_results.values():
                     self.results.insert(0, i)
 
@@ -897,15 +922,23 @@ class Search():
     def titleSearch(self):
             rec_files = glob.glob(search_path, recursive = True) # gather list to search
             search_str = self.search_entered.get()  # get the term to be searched for
+
             self.search_results = {}
+            self.results.configure(state='normal')
             self.results.delete(0, 'end') # Clear results box to keep multiple searches from appending
             self.display.delete(1.0, 'end') # Clear the display box of any previous search results
+            if '+' in search_str:
+                search_str = 'junktext'
+                self.results.insert(0, 'ERROR')
+                self.results.insert(1, 'Single word only for title search')
+
             for file in rec_files:
-                    # use re.findall to make search case insensitive
-                    if re.findall(search_str, file, flags=re.IGNORECASE):
+                    # use re.search to make search case insensitive
+                    if re.search(search_str, file, flags=re.IGNORECASE):
                             self.search_results[file]=path.basename(file) # set key as full path, value as filename
             for i in self.search_results.values():
                     self.results.insert(0, i)
+
 
     # Function to display the selected recipe in the display box
 
@@ -1013,10 +1046,12 @@ class Search():
 
         # Add button for Title search
         self.tsbutton = tk.Button(self.sbutton_frame, text='Title Search', relief='raised', command = self.titleSearch)
+        self.tsbutton.configure(background = button_bg, foreground = button_fg)
         self.tsbutton.grid(column=0, row=1, padx=8, pady=(3, 8), sticky='W')
 
         # Add button for Ingredient search
         self.ingbutton = tk.Button(self.sbutton_frame, text='Ingredient Search', relief='raised', command = self.ingSearch)
+        self.ingbutton.configure(background = button_bg, foreground = button_fg)
         self.ingbutton.grid(column=1, row=1, padx=8, pady=(3, 8))
 
         # Add button to save edits
@@ -1024,12 +1059,12 @@ class Search():
         self.savebutton.grid(column=0, row=1, padx=8, pady=(3, 8))
         # Save button disabled initially. It becomes enabled when the mouse
         # is clicked in the display pane to make any edits.
-        self.savebutton.config(state='disabled')
+        self.savebutton.config(background = button_bg, foreground = button_fg, state='disabled')
 
         # Search results box
         self.results = tk.Listbox(self.result_frame, width = 30, bd=5, selectmode=tk.SINGLE,\
                  relief=tk.RIDGE)
-        self.results.configure(background = entry_bg, foreground = entry_text)
+        self.results.configure(background = entry_bg, foreground = entry_text, state='disabled')
         self.results.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.results.bind('<<ListboxSelect>>', self.viewRec)
 
