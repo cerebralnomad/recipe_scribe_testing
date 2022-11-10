@@ -25,5 +25,23 @@ line cursor in light mode.
 Have also added a configuration option to start the program full screen if desired.
 Realized this was helpful after moving to a dev machine with a smaller screen.
 
+### Update
+
+Search function is completely incorporated.
+
+The program now automatically restarts when changing some of the configuration
+options so they take effect immediately without having to manually exit and
+restart.
+
+Changed the button colors to match the selected theme.
+
+Need to test as is on a machine running python3.6 then add the program icon and
+test again
+After adding the icon to the previous version the program would only run if
+python 3.10 was installed.
+Not sure if it was caused by the way I coded it or by pyinstaller.
+
+
+
 
 
