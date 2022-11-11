@@ -41,6 +41,10 @@ After adding the icon to the previous version the program would only run if
 python 3.10 was installed.
 Not sure if it was caused by the way I coded it or by pyinstaller.
 
+Added the ability to search for two ingredients in the same recipe.
+
+Program icon added and is working. Need to test on 3.6
+
 
 
 
