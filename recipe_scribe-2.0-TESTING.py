@@ -335,6 +335,7 @@ class MAIN():
     def rightClick(self, event, src):
         paste_menu = Menu(root, tearoff=0)
         paste_menu.add_command(label='Paste from Clipboard', command= lambda: self.ingPaste(src))
+        paste_menu.add_command(label='Copy Selection', command= lambda: self.copy(src))
         paste_menu.add_separator()
         paste_menu.add_command(label='Cancel', command=paste_menu.destroy)
 
@@ -357,6 +358,32 @@ class MAIN():
             text = root.clipboard_get()
             self.title_entered.insert(tk.INSERT, text)
 
+    def copy(self, src):
+
+        if src == 'ing':
+            try:
+                text = self.ingredients.get('sel.first', 'sel.last')
+                root.clipboard_clear()
+                root.clipboard_append(text)
+
+            except:
+                pass
+        elif src == 'dir':
+            try:
+                text = self.directions.get('sel.first', 'sel.last')
+                root.clipboard_clear()
+                root.clipboard_append(text)
+
+            except:
+                pass
+        elif src == 'title':
+            try:
+                text = self.title_entered.get('sel.first', 'sel.last')
+                root.clipboard_clear()
+                root.clipboard_append(text)
+
+            except:
+                pass
 
     def create_widgets(self):
         '''
@@ -1042,7 +1069,7 @@ class Search():
         root.quit()
         root.destroy()
 
-    # Finction to raise context menu with right click
+    # Function to raise context menu with right click
 
     def rightClick(self, event):
 
