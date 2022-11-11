@@ -43,6 +43,9 @@ Not sure if it was caused by the way I coded it or by pyinstaller.
 
 Added the ability to search for two ingredients in the same recipe.
 
+Added right click copy and paste to all fields of the recipe creation window and right 
+click copy to the recipe display pane of teh search window
+
 Program icon added and is working. Need to test on 3.6
 
 
