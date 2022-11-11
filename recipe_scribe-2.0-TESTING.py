@@ -329,6 +329,34 @@ class MAIN():
         Search(root)
         self.frame.pack_forget()
 
+    # Bring up paste option with right click
+    # src is passed with the event and identifies the widget that received the right click
+
+    def rightClick(self, event, src):
+        paste_menu = Menu(root, tearoff=0)
+        paste_menu.add_command(label='Paste from Clipboard', command= lambda: self.ingPaste(src))
+        paste_menu.add_separator()
+        paste_menu.add_command(label='Cancel', command=paste_menu.destroy)
+
+        try:
+            paste_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            paste_menu.grab_release()
+
+    # Paste from clipboard to widget the paste action was called from
+
+    def ingPaste(self, src):
+
+        if src == 'ing':
+            text = root.clipboard_get()
+            self.ingredients.insert(tk.INSERT, text)
+        elif src == 'dir':
+            text = root.clipboard_get()
+            self.directions.insert(tk.INSERT, text)
+        elif src == 'title':
+            text = root.clipboard_get()
+            self.title_entered.insert(tk.INSERT, text)
+
 
     def create_widgets(self):
         '''
@@ -379,6 +407,8 @@ class MAIN():
         # Command to switch to the Search window
         menu_bar.add_command(label = 'Search Recipes', command=self.search)
 
+
+
         # Top frame for the recipe name entry
         nameLabel = ttk.Label(foreground=label_text, background=label_bg, text=' Enter Recipe Title')
         self.title_frame = ttk.LabelFrame(self.frame, labelwidget=nameLabel)
@@ -405,6 +435,7 @@ class MAIN():
         self.title_entered.configure(background = entry_bg, foreground = entry_text, insertbackground=insert_bg)
         self.title_entered.grid(column=0, row=2, padx=8, pady=(3, 8), sticky='W')
         self.title_entered.bind("<Tab>", self.focus_next_widget)
+        self.title_entered.bind("<Button-3>", lambda event: self.rightClick(event, 'title'))
         tt.create_ToolTip(self.title_entered, 'Enter the title of the recipe here')
 
         # Add a scroll box for ingredients
@@ -414,6 +445,7 @@ class MAIN():
         self.ingredients.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
         self.ingredients.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.ingredients.bind("<Tab>", self.focus_next_widget)
+        self.ingredients.bind("<Button-3>", lambda event: self.rightClick(event, 'ing'))
         tt.create_ToolTip(self.ingredients, 'Enter ingredients here, one per line\nBegin line with a period to omit bullet point')
 
         # Add a scroll text box for directions
@@ -423,6 +455,7 @@ class MAIN():
         self.directions.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
         self.directions.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.directions.bind("<Tab>", self.focus_next_widget)
+        self.directions.bind("<Button-3>", lambda event: self.rightClick(event, 'dir'))
         tt.create_ToolTip(self.directions, 'Enter the recipe instructions here')
 
         self.title_entered.focus()  # Place cursor into the title entry box
@@ -1009,6 +1042,32 @@ class Search():
         root.quit()
         root.destroy()
 
+    # Finction to raise context menu with right click
+
+    def rightClick(self, event):
+
+        copy_menu = Menu(root, tearoff=0)
+        copy_menu.add_command(label='Copy to Clipboard', command= lambda: self.copy())
+        copy_menu.add_separator()
+        copy_menu.add_command(label='Cancel', command=copy_menu.destroy)
+        try:
+            copy_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            copy_menu.grab_release()
+
+    # Copy selected text to clipboard
+
+    def copy(self):
+
+        try:
+            text = self.display.get('sel.first', 'sel.last')
+            root.clipboard_clear()
+            root.clipboard_append(text)
+
+        except:
+            pass
+
+
     # Function to switch to the main window
 
     def create(self):
@@ -1102,7 +1161,7 @@ class Search():
         self.display.vbar.configure(troughcolor = scroll_color, background = scroll_bg, activebackground = scrollbar_color)
         self.display.grid(column=0, row=0, padx=8, pady=(0, 20), sticky=tk.N+tk.S+tk.E+tk.W)
         self.display.bind("<Button-1>", self.saveEnable) # left click enables save button
-        self.display.bind("<Button-3>", self.saveEnable) # right click enables save button
+        self.display.bind("<Button-3>", self.rightClick) # copy to clipboard with right click
 
 #=============
 # Start GUI
