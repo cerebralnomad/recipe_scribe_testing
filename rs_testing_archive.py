@@ -8,8 +8,6 @@ icon and test again.
 Maybe that will help determine the compatibility
 issue with python version below 3.10
 
-Need to add comments to new search code
-
 '''
 
 
@@ -851,47 +849,60 @@ class Search():
     # Function to perform a search of the ingredients in all recipes
 
     def ingSearch(self):
+            # Assemble list of all recipe files
             rec_files = glob.glob(search_path, recursive = True)
-            get_term = self.search_entered.get()
+
+            # Fetch the search term and if a space is found replace it with a +
+            # to trigger the two word search loop
+            query = self.search_entered.get()
+            get_term = re.sub(r' ', '+', query)
+
             self.search_results = {}
             self.results.configure(state='normal')
             # Clear the results and display boxes of previous search, if any
             self.results.delete(0, 'end')
             self.display.delete(1.0, 'end')
 
-            # use try loop to avoid trying to open directories in the file list
+            '''
+            Here we check for the presence of a + in the search term, indicating a
+            search using two words.
+            If there are two words, separate them and remove any spaces, and store each
+            word as a separate string variable.
+            Two words will result in two searches which will be compared. Only files
+            returned by both searches, meaning that both terms were found in the file,
+            will be in the final results.
+            '''
 
             if '+' in get_term:
+                # Split the search terms and show error if more than two are found
                 try:
                     term1, term2 = re.sub(r' ', '', get_term).split('+')
                 except:
                     self.results.insert(0, 'ERROR')
                     self.results.insert(1, 'More than 2 search terms.')
-
+                # One dict for the results of each search term
                 search1 = {}
                 search2 = {}
 
                 for file in rec_files:
                     try:
-                        with open(file, 'r') as f:
+                        with open(file, 'r') as f: # open each recipe in turn
                             contents = f.read()
-
+                        # Search for the first search term, add results to first results dict
                         if re.search(term1, contents, flags=re.IGNORECASE):
                             search1[file]=path.basename(file)
-                            #self.search_results[file]=path.basename(file)
-
+                        # Search for the second search term, add results to second results dict
                         if re.search(term2, contents, flags=re.IGNORECASE):
                             search2[file]=path.basename(file)
 
                     except:
                         pass
-
+                # Compare the two searches and include shared matches in the final results
                 self.search_results = dict(search1.items() & search2.items())
-
+            # If only one search word exists, perform a normal single search
             else:
                 search_str = get_term
-                print(search_str)
-                print(type(search_str))
+
                 for file in rec_files:
                     try:
                         with open(file, 'r') as f:
@@ -902,31 +913,26 @@ class Search():
                     except:
                         pass
 
-            #for file in rec_files:
-            #    try:
-            #            with open(file, 'r') as f:
-            #                    contents = f.read()
-                        # use re.findall to make search case insensitive
-            #            if re.findall(search_str, contents, flags=re.IGNORECASE):
-            #                    self.search_results[file]=path.basename(file)
-            #                    file.close()
-
-            #    except:
-            #            pass
+            # Display the search results in the left pane of the GUI
             for i in self.search_results.values():
                     self.results.insert(0, i)
 
 
     # Function to perform a search of the recipe titles
+    # Only single word searches allowed
 
     def titleSearch(self):
             rec_files = glob.glob(search_path, recursive = True) # gather list to search
-            search_str = self.search_entered.get()  # get the term to be searched for
+            # fetch the search term and check for spaces indicating two words
+            # Change space to a + sign
+            query = self.search_entered.get()
+            search_str = re.sub(r' ', '+', query)
 
             self.search_results = {}
             self.results.configure(state='normal')
             self.results.delete(0, 'end') # Clear results box to keep multiple searches from appending
             self.display.delete(1.0, 'end') # Clear the display box of any previous search results
+            # If + sign is found in the search, return error message
             if '+' in search_str:
                 search_str = 'junktext'
                 self.results.insert(0, 'ERROR')
