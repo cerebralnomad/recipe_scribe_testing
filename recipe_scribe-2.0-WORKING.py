@@ -3,10 +3,8 @@
 All features working as intended.
 Archiving at this point to preserve progress.
 
-Need to test as is on Zeus then add the program
-icon and test again.
-Maybe that will help determine the compatibility
-issue with python version below 3.10
+Tested on Zeus, working fine.
+Program icon not added yet
 
 '''
 
