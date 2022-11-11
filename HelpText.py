@@ -80,14 +80,14 @@ Title Search looks for the search term in all the recipe titles.
 Ingredient search searches the contents of every recipe file for the search term.
 Searches are not case sensitive.
 
-Single word searches work best. Searching for two words will only match files
-where those two words occur together, unless you use the + operator.
-For instance searching for 'red pepper' would find all recipes that include
-red pepper flakes, but not one that included red cabbage and black pepper, or
-one that called for red bell pepper.
-
-Searching for 'red+pepper' or 'red + pepper' will return all of those results.
-Searches for more than 2 words is not supported.
+Single word searches work best and title searches only support single words.
+When searching for two words, results will include all files which contain both words.
+This can greatly increase results in some cases.
+For instance searching for red pepper, would return all the recipes that include
+red pepper flakes but also recipes that call for red cabbage and black pepper, as
+well as any that use red bell pepper or red wine and jalapeno peppers.
+Searching for more than two words is not supported and will return an error
+message as the results.
 
 The list of filenames returned by the search will appear in the left side panel.
 Clicking on a filename will display the recipe in the right side panel.
